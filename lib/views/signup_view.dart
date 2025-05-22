@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:login/controllers/login_controller.dart';
+import 'package:login/models/login_model.dart';
 
 class SignUpView extends StatefulWidget {
   const SignUpView({Key? key}) : super(key: key);
@@ -21,18 +22,115 @@ class _SignUpViewState extends State<SignUpView> {
   final TextEditingController _cityTC = TextEditingController();
   final TextEditingController _zipCodeTC = TextEditingController();
 
+  final UserController _userController = UserController();
 
-  UserController _userController = UserController();
+  String _passwordError = '';
+  String _confirmPasswordError = '';
+  String _emailError = '';
+  String _phoneError = '';
+  String _zipCodeError = '';
+  String _fieldError = '';
 
-  void _signUp() {
-    final name = _userTC.text;
+  void _comparePasswords(String value) {
+    setState(() {
+      _confirmPasswordTC.text = value;
+      if (_passTC.text != _confirmPasswordTC.text) {
+        _confirmPasswordError = "Las contraseñas no coinciden.";
+      } else {
+        _confirmPasswordError = "";
+      }
+    });
+  }
+
+  void _validateEmail(String value) {
+    setState(() {
+      final email = _emailTC.text;
+      final emailRegex = RegExp(
+        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+      );
+      if (!emailRegex.hasMatch(email)) {
+        _emailError = "El correo electrónico no es válido.";
+      } else {
+        _emailError = "";
+      }
+    });
+  }
+
+  void _validatePhone(String value) {
+    setState(() {
+      final phone = _phoneTC.text;
+      final phoneRegex = RegExp(r'^\d{10}$');
+      if (!phoneRegex.hasMatch(phone)) {
+        _phoneError = "El número de teléfono no es válido.";
+      } else {
+        _phoneError = "";
+      }
+    });
+  }
+
+  void _validateZipCode(String value) {
+    setState(() {
+      final zipCode = _zipCodeTC.text;
+      final zipCodeRegex = RegExp(r'^\d{5}$');
+      if (!zipCodeRegex.hasMatch(zipCode)) {
+        _zipCodeError = "El código postal no es válido.";
+      } else {
+        _zipCodeError = "";
+      }
+    });
+  }
+
+  void _requiredFields() {
+    setState(() {
+      if (_userTC.text.isEmpty ||
+          _passTC.text.isEmpty ||
+          _confirmPasswordTC.text.isEmpty) {
+        _fieldError = "Revisar los campos que son obligatorios.";
+      } else {
+        _fieldError = "";
+      }
+    });
+  }
+
+  void _validatePassword(String value) {
+    setState(() {
+      final password = value;
+      final passwordRegex = RegExp(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$');
+      if (!passwordRegex.hasMatch(password)) {
+        _passwordError = "La contraseña no es válida.";
+      } else {
+        _passwordError = '';
+      }
+    });
+  }
+
+  bool _signUp() {
+    final name = _nameTC.text;
+    final lastName = _lasNameTC.text;
     final user = _userTC.text;
     final pass = _passTC.text;
+    final email = _emailTC.text;
+    final phone = _phoneTC.text;
+    final state = _stateTC.text;
+    final city = _cityTC.text;
+    final zipCode = _zipCodeTC.text;
 
-    if (_userController.signUp(name, user, pass)) {
+    User newUser = User(
+      name: name,
+      lastName: lastName,
+      user: user,
+      pass: pass,
+      email: email,
+      phone: phone,
+      direction: {'city': city, 'state': state, 'zipCode': zipCode},
+    );
+
+    if (_userController.signUp(newUser)) {
       print("✅ Usuario registrado correctamente.");
+      return true;
     } else {
       print("❌ El usuario con ese nombre ya existe.");
+      return false;
     }
   }
 
@@ -66,7 +164,6 @@ class _SignUpViewState extends State<SignUpView> {
                         decoration: const InputDecoration(
                           labelText: 'Apellido',
                         ),
-                        obscureText: true,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -77,7 +174,6 @@ class _SignUpViewState extends State<SignUpView> {
                         decoration: const InputDecoration(
                           labelText: 'Username',
                         ),
-                        obscureText: true,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -89,8 +185,17 @@ class _SignUpViewState extends State<SignUpView> {
                           labelText: 'Contraseña',
                         ),
                         obscureText: true,
+                        onChanged: _validatePassword,
                       ),
                     ),
+                    if (_passwordError.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          _passwordError,
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     SizedBox(
                       width: 200,
@@ -100,8 +205,17 @@ class _SignUpViewState extends State<SignUpView> {
                           labelText: 'Confirmar Contraseña',
                         ),
                         obscureText: true,
+                        onChanged: _comparePasswords,
                       ),
                     ),
+                    if (_confirmPasswordError.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          _confirmPasswordError,
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
                   ],
                 ),
                 const SizedBox(width: 40),
@@ -113,8 +227,17 @@ class _SignUpViewState extends State<SignUpView> {
                       child: TextField(
                         controller: _emailTC,
                         decoration: const InputDecoration(labelText: 'Email'),
+                        onChanged: _validateEmail,
                       ),
                     ),
+                    if (_emailError.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          _emailError,
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     SizedBox(
                       width: 200,
@@ -123,9 +246,17 @@ class _SignUpViewState extends State<SignUpView> {
                         decoration: const InputDecoration(
                           labelText: 'Teléfono',
                         ),
-                        obscureText: true,
+                        onChanged: _validatePhone,
                       ),
                     ),
+                    if (_phoneError.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          _phoneError,
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     SizedBox(
                       width: 200,
@@ -134,7 +265,6 @@ class _SignUpViewState extends State<SignUpView> {
                         decoration: const InputDecoration(
                           labelText: 'Provincia',
                         ),
-                        obscureText: true,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -143,7 +273,6 @@ class _SignUpViewState extends State<SignUpView> {
                       child: TextField(
                         controller: _cityTC,
                         decoration: const InputDecoration(labelText: 'Ciudad'),
-                        obscureText: true,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -154,20 +283,52 @@ class _SignUpViewState extends State<SignUpView> {
                         decoration: const InputDecoration(
                           labelText: 'Código Postal',
                         ),
-                        obscureText: true,
+                        onChanged: _validateZipCode,
                       ),
                     ),
+                    if (_zipCodeError.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          _zipCodeError,
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 64),
+            if (_fieldError.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Text(_fieldError, style: TextStyle(color: Colors.red)),
+              ),
             ElevatedButton(
               onPressed: () {
-                // Handle login logic here
-                Navigator.pushNamed(context, '/');
+                _requiredFields();
+                if (_fieldError.isEmpty &&
+                    _passwordError.isEmpty &&
+                    _confirmPasswordError.isEmpty &&
+                    _zipCodeError.isEmpty) {
+                  if (_signUp()) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Usuario registrado correctamente.'),
+                      ),
+                    );
+                    Navigator.pushNamed(context, '/');
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Por favor, ingrese los campos necesarios'),
+                      ),
+                    );
+                    print("❌ Error al registrar el usuario.");
+                  }
+                }
               },
-              child: const Text('Log In'),
+              child: const Text('Sign Up'),
             ),
           ],
         ),
